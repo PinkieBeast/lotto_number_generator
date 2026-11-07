@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Generator Angka Acak</title>
+<style>
+:root{--bg:#eef1f5;--panel:#fff;--ink:#1b2430;--mute:#5d6b7c;--line:#d3dae4;--acc:#2b4bdb;--accink:#fff;--chip:#e4e9f7;--ok:#16794c;--warn:#a35a00}
+@media (prefers-color-scheme:dark){:root{--bg:#141a24;--panel:#1c2431;--ink:#e8edf5;--mute:#93a1b4;--line:#2d3849;--acc:#7e96ff;--accink:#10162b;--chip:#27324a;--ok:#5fd3a0;--warn:#f0b35a}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:max(24px,env(safe-area-inset-top)) 16px max(32px,env(safe-area-inset-bottom))}
+main{max-width:960px;margin:0 auto}
+h1{font-size:clamp(1.6rem,4vw,2.3rem);line-height:1.15;margin:0 0 6px;letter-spacing:-.02em}
+.sub{color:var(--mute);margin:0 0 20px;max-width:70ch}
+.bar{display:flex;flex-wrap:wrap;gap:12px;align-items:end;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:18px}
+label{display:flex;flex-direction:column;font-size:.85rem;color:var(--mute);gap:4px}
+label.chk,label.mini{flex-direction:row;align-items:center;gap:8px;color:var(--ink);font-size:1rem}
+label.mini{font-size:.9rem;gap:6px}
+label.dim{opacity:.45}
+fieldset.scales{display:flex;gap:14px;align-items:center;margin:0;border:1px solid var(--line);border-radius:6px;padding:4px 12px 8px}
+fieldset.scales legend{font-size:.85rem;color:var(--mute);padding:0 4px}
+.customBox{display:flex;gap:12px;align-items:end}
+select,input[type=number],input[type=password]{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px 10px}
+select{min-width:150px}
+#count{width:130px}
+.customBox input{width:150px}
+#apikey{min-width:300px}
+button{font:inherit;cursor:pointer;border-radius:6px;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:9px 14px}
+button.primary{background:var(--acc);color:var(--accink);border-color:var(--acc);font-weight:600}
+button:disabled{opacity:.55;cursor:wait}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.spacer{flex:1}
+#status{font-size:.9rem;color:var(--mute);margin:0 0 14px;min-height:1.4em}
+h2.sec{font-size:1.25rem;margin:24px 0 10px}
+.row{background:var(--panel);border:1px solid var(--line);border-left:5px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px}
+.row.real{border-left-color:var(--ok)}
+.row.fallback{border-left-color:var(--warn)}
+.head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+.range{font-weight:700;font-size:1.1rem;font-variant-numeric:tabular-nums}
+.src{font-size:.82rem;color:var(--mute)}
+.row.real .src{color:var(--ok)}
+.row.fallback .src{color:var(--warn)}
+.nums{display:flex;flex-wrap:wrap;gap:5px}
+.chip{border:0;background:var(--chip);color:var(--ink);border-radius:5px;min-width:2.3em;text-align:center;padding:2px 6px;font-variant-numeric:tabular-nums;font-size:.95rem}
+.chip:hover{outline:2px solid var(--acc)}
+.nums.text{display:block;max-height:220px;overflow:auto;background:var(--chip);border-radius:6px;padding:8px 10px;font-variant-numeric:tabular-nums;word-spacing:.35em;line-height:1.7;font-size:.9rem;cursor:pointer}
+.empty{color:var(--mute);font-size:.92rem}
+.tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)}
+.tools input.cn{width:90px;padding:5px 8px}
+.tools button{padding:5px 12px}
+.hint{color:var(--mute);font-size:.85rem;margin:0 0 10px}
+.note{color:var(--mute);font-size:.85rem;margin-top:22px;max-width:75ch}
+#toast{position:fixed;left:50%;bottom:max(20px,env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:8px;max-width:90vw;opacity:0;pointer-events:none;font-size:.9rem;transition:opacity .2s}
+#toast.on{opacity:1}
+dialog{border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink);padding:20px;max-width:430px}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+dialog p{margin:0 0 16px}
+</style>
+</head>
+<body>
+<main>
+<h1>Generator angka acak</h1>
+<p class="sub">Pilih rentang tetap (10, 100, 1000, atau 10000, dibagi jadi 10 rentang) atau tentukan rentang sendiri, misalnya dari 37 sampai 482. Sumbernya Random.org (lewat API key Anda jika diisi), dengan cadangan generator acak aman milik browser.</p>
+ 
+<div class="bar">
+  <fieldset class="scales">
+    <legend>Jenis</legend>
+    <label class="chk"><input type="radio" name="kind" value="fixed" checked> Rentang tetap</label>
+    <label class="chk"><input type="radio" name="kind" value="custom"> Rentang sendiri</label>
+  </fieldset>
+  <fieldset class="scales" id="fixedBox">
+    <legend>Ukuran rentang</legend>
+    <label class="chk"><input type="radio" name="scale" class="sc" value="10" checked> 10</label>
+    <label class="chk"><input type="radio" name="scale" class="sc" value="100"> 100</label>
+    <label class="chk"><input type="radio" name="scale" class="sc" value="1000"> 1000</label>
+    <label class="chk"><input type="radio" name="scale" class="sc" value="10000"> 10000</label>
+  </fieldset>
+  <span class="customBox" id="customBox" hidden>
+    <label>Dari<input id="rmin" type="number" inputmode="numeric" value="1"></label>
+    <label>Sampai<input id="rmax" type="number" inputmode="numeric" value="100"></label>
+  </span>
+  <label>Jumlah angka per rentang (1–6000)
+    <input id="count" type="number" inputmode="numeric" value="5">
+  </label>
+  <label class="chk" id="uniqlabel"><input id="uniq" type="checkbox" checked> Tanpa pengulangan</label>
+  <label>Sumber
+    <select id="mode">
+      <option value="auto">Random.org, cadangan browser</option>
+      <option value="random">Hanya Random.org</option>
+      <option value="local">Hanya browser</option>
+    </select>
+  </label>
+  <label>API key Random.org (opsional)
+    <input id="apikey" type="password" autocomplete="off" spellcheck="false" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+  </label>
+  <label class="chk"><input id="remember" type="checkbox"> Ingat di browser ini</label>
+  <button id="go" class="primary">Generate</button>
+  <span class="spacer"></span>
+  <button id="copy" disabled>Salin semua</button>
+  <button id="csv" disabled>Unduh CSV</button>
+</div>
+ 
+<p id="status" role="status" aria-live="polite">Pilih jenis rentang dan jumlah angka, lalu tekan Generate.</p>
+<div id="out"></div>
+ 
+<p class="note">Klik sebuah angka untuk menyalinnya. Tiap rentang punya tombol “Salin rentang” dengan pilihan jumlah angka dan pilihan acak. Dengan API key, beberapa rentang diambil sekaligus dalam satu permintaan (maksimal 10.000 angka per permintaan). Kuota harian key dihitung dalam bit: kira-kira 4 bit per angka untuk rentang 10, 7 bit untuk 100, 10 bit untuk 1000, 14 bit untuk 10000, dan sekitar 30 bit untuk rentang sampai 1 miliar. Jangan menaruh API key di file yang dipublikasikan: key diketik di halaman dan hanya dikirim ke api.random.org. Garis hijau berarti dari Random.org, garis oranye berarti dari browser.</p>
+</main>
+ 
+<div id="toast" role="status" aria-live="polite"></div>
+<dialog id="popup">
+  <p id="popmsg"></p>
+  <form method="dialog"><button class="primary">Mengerti</button></form>
+</dialog>
+ 
+<script>
+(function(){
+  var MAXN=6000,TEXT_AT=60,MAXV=1000000000;
+  var $=function(id){return document.getElementById(id);};
+  var out=$('out'),statusEl=$('status'),goBtn=$('go'),copyBtn=$('copy'),csvBtn=$('csv'),dlg=$('popup'),toastEl=$('toast'),toastT;
+  var group=null;
+ 
+  function popup(msg){$('popmsg').textContent=msg;if(dlg.showModal)dlg.showModal();else alert(msg);}
+  function toast(msg){toastEl.textContent=msg;toastEl.classList.add('on');clearTimeout(toastT);toastT=setTimeout(function(){toastEl.classList.remove('on');},2000);}
+  function sleep(ms){return new Promise(function(r){setTimeout(r,ms);});}
+  function pad(x,w){var s=String(x);while(s.length<w)s='0'+s;return s;}
+  function label(r){return pad(r.min,group.w)+'–'+pad(r.max,group.w);}
+  function isReal(src){return src==='random'||src==='api';}
+  function srcName(src){return src==='api'?'Random.org API':src==='random'?'Random.org':'Browser (crypto)';}
+  function parseInt0(v){v=v.trim();return /^\d+$/.test(v)?Number(v):NaN;}
+ 
+  function randBelow(range){
+    var limit=Math.floor(4294967296/range)*range,buf=new Uint32Array(1);
+    do{crypto.getRandomValues(buf);}while(buf[0]>=limit);
+    return buf[0]%range;
+  }
+  function localInts(n,min,max,uniq){
+    var span=max-min+1,i,res=[];
+    if(uniq){
+      if(span<=100000){
+        var pool=new Array(span);for(i=0;i<span;i++)pool[i]=min+i;
+        for(i=0;i<n;i++){var j=i+randBelow(span-i),t=pool[i];pool[i]=pool[j];pool[j]=t;}
+        return pool.slice(0,n);
+      }
+      var set=new Set();while(set.size<n)set.add(min+randBelow(span));
+      return Array.from(set);
+    }
+    while(res.length<n)res.push(min+randBelow(span));
+    return res;
+  }
+ 
+  async function remoteInts(n,min,max,uniq){
+    if(uniq&&max-min+1>10000)throw new Error('Rentang terlalu besar untuk antarmuka publik');
+    var url=uniq
+      ?'https://www.random.org/sequences/?min='+min+'&max='+max+'&col=1&format=plain&rnd=new'
+      :'https://www.random.org/integers/?num='+n+'&min='+min+'&max='+max+'&col=1&base=10&format=plain&rnd=new';
+    var ctrl=new AbortController(),t=setTimeout(function(){ctrl.abort();},20000);
+    try{
+      var r=await fetch(url,{signal:ctrl.signal});
+      if(!r.ok)throw new Error('HTTP '+r.status);
+      var arr=(await r.text()).trim().split(/\s+/).map(Number);
+      if(uniq)arr=arr.slice(0,n);
+      if(arr.length!==n||arr.some(function(x){return isNaN(x)||x<min||x>max;}))throw new Error('Respons tidak valid');
+      return arr;
+    }finally{clearTimeout(t);}
+  }
+ 
+  async function apiChunk(chunk,n,uniq,key){
+    var mn=[],mx=[],len=[],rep=[];
+    chunk.forEach(function(r){mn.push(r.min);mx.push(r.max);len.push(n);rep.push(!uniq);});
+    var ctrl=new AbortController(),t0=setTimeout(function(){ctrl.abort();},30000);
+    try{
+      var r=await fetch('https://api.random.org/json-rpc/4/invoke',{
+        method:'POST',headers:{'Content-Type':'application/json'},signal:ctrl.signal,
+        body:JSON.stringify({jsonrpc:'2.0',method:'generateIntegerSequences',id:1,
+          params:{apiKey:key,n:chunk.length,length:len,min:mn,max:mx,replacement:rep}})
+      });
+      var j=await r.json();
+      if(j.error)throw new Error(j.error.message||'Error dari Random.org');
+      var data=j.result.random.data;
+      if(!Array.isArray(data)||data.length!==chunk.length)throw new Error('Respons tidak valid');
+      data.forEach(function(seq,idx){
+        if(seq.length!==n||seq.some(function(x){return x<mn[idx]||x>mx[idx];}))throw new Error('Respons tidak valid');
+      });
+      return {data:data,bitsLeft:j.result.bitsLeft,requestsLeft:j.result.requestsLeft,delay:j.result.advisoryDelay};
+    }finally{clearTimeout(t0);}
+  }
+ 
+  function acakDim(tools,r){
+    var total=r.nums?r.nums.length:0,raw=(r.copyN||'').trim();
+    var all=raw===''||Number(raw)>=total;
+    tools.querySelector('.acaklabel').classList.toggle('dim',all);
+    tools.querySelector('.acaklabel').title=all?'Hanya berpengaruh jika jumlah yang disalin kurang dari semua angka. Pilihan Anda tetap tersimpan.':'';
+  }
+ 
+  function render(){
+    out.innerHTML='';
+    if(!group)return;
+    var h=document.createElement('h2');h.className='sec';h.textContent=group.title;out.appendChild(h);
+    group.rows.forEach(function(r,i){
+      var row=document.createElement('div');
+      row.className='row '+(r.nums?(isReal(r.src)?'real':'fallback'):(r.failed?'fallback':''));
+      var head=document.createElement('div');head.className='head';
+      var rg=document.createElement('span');rg.className='range';rg.textContent=label(r);
+      var s=document.createElement('span');s.className='src';
+      s.textContent=r.nums?(r.nums.length+' angka · '+srcName(r.src)):(r.failed?'Gagal':'Menunggu…');
+      head.appendChild(rg);head.appendChild(s);row.appendChild(head);
+      if(r.nums){
+        if(r.nums.length>TEXT_AT){
+          var tb=document.createElement('div');tb.className='nums text';tb.title='Klik sebuah angka untuk menyalinnya';
+          tb.textContent=r.nums.map(function(x){return pad(x,group.w);}).join(' ');
+          row.appendChild(tb);
+        }else{
+          var box=document.createElement('div');box.className='nums';
+          r.nums.forEach(function(x){
+            var c=document.createElement('button');c.type='button';c.className='chip';c.title='Klik untuk menyalin';c.textContent=pad(x,group.w);box.appendChild(c);
+          });
+          row.appendChild(box);
+        }
+        var tools=document.createElement('div');tools.className='tools';
+        tools.innerHTML='<label class="mini">Salin <input type="number" class="cn" inputmode="numeric" min="1" placeholder="semua" data-i="'+i+'"> angka</label>'
+          +'<label class="mini acaklabel"><input type="checkbox" class="ca" data-i="'+i+'"> Acak</label>'
+          +'<button type="button" class="cr" data-i="'+i+'">Salin rentang</button>';
+        tools.querySelector('.cn').value=r.copyN||'';
+        tools.querySelector('.ca').checked=!!r.acak;
+        acakDim(tools,r);
+        row.appendChild(tools);
+      }else if(r.failed){
+        var e=document.createElement('div');e.className='empty';e.textContent='Random.org tidak terjangkau dan sumber cadangan browser dimatikan.';row.appendChild(e);
+      }
+      out.appendChild(row);
+    });
+  }
+ 
+  function copyText(txt,msg){
+    (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(function(){toast(msg);}).catch(function(){
+      var ta=document.createElement('textarea');ta.value=txt;ta.style.position='fixed';ta.style.opacity='0';
+      document.body.appendChild(ta);ta.select();
+      var ok=false;try{ok=document.execCommand('copy');}catch(e){}
+      document.body.removeChild(ta);
+      toast(ok?msg:'Gagal menyalin. Coba Unduh CSV.');
+    });
+  }
+ 
+  function numberAt(tb,x,y){
+    var node=null,off=0;
+    if(document.caretPositionFromPoint){var p=document.caretPositionFromPoint(x,y);if(p){node=p.offsetNode;off=p.offset;}}
+    else if(document.caretRangeFromPoint){var g=document.caretRangeFromPoint(x,y);if(g){node=g.startContainer;off=g.startOffset;}}
+    if(!node||node.nodeType!==3||!tb.contains(node))return null;
+    var txt=node.data,s=off,e=off;
+    while(s>0&&txt.charAt(s-1)!==' ')s--;
+    while(e<txt.length&&txt.charAt(e)!==' ')e++;
+    return txt.slice(s,e)||null;
+  }
+ 
+  function copyRange(i){
+    var r=group.rows[i],total=r.nums.length,raw=(r.copyN||'').trim(),n=total;
+    if(raw!==''){
+      n=Number(raw);
+      if(!isFinite(n)||Math.floor(n)!==n||n<1||n>total){popup('Jumlah yang disalin harus bilangan bulat antara 1 dan '+total+', atau kosongkan untuk menyalin semua.');return;}
+    }
+    var list=r.nums.slice(),shuffled=false;
+    if(n<total){
+      if(r.acak){
+        for(var k=0;k<n;k++){var j=k+randBelow(total-k),t=list[k];list[k]=list[j];list[j]=t;}
+        shuffled=true;
+      }
+      list=list.slice(0,n);
+    }
+    copyText(list.map(function(x){return pad(x,group.w);}).join(', '),'Disalin '+list.length+' angka dari rentang '+label(r)+(shuffled?' (acak)':''));
+  }
+ 
+  out.addEventListener('click',function(e){
+    var el=e.target;
+    if(el.classList&&el.classList.contains('chip')){copyText(el.textContent,'Disalin: '+el.textContent);return;}
+    var tb=el.closest?el.closest('.nums.text'):null;
+    if(tb){var v=numberAt(tb,e.clientX,e.clientY);if(v)copyText(v,'Disalin: '+v);return;}
+    var btn=el.closest?el.closest('button.cr'):null;
+    if(btn)copyRange(parseInt(btn.getAttribute('data-i'),10));
+  });
+  out.addEventListener('input',function(e){
+    var el=e.target,i=el.getAttribute('data-i');
+    if(i===null||!group)return;
+    var r=group.rows[Number(i)];
+    if(el.classList.contains('cn')){r.copyN=el.value;acakDim(el.closest('.tools'),r);}
+    else if(el.classList.contains('ca')){r.acak=el.checked;}
+  });
+ 
+  async function run(){
+    var kind=document.querySelector('input[name=kind]:checked').value,g,i;
+    if(kind==='fixed'){
+      var st=Number(document.querySelector('.sc:checked').value);
+      g={title:'Rentang per '+st,csv:String(st),w:String(st*10-1).length,rows:[]};
+      for(i=0;i<10;i++)g.rows.push({min:i*st,max:i*st+st-1});
+    }else{
+      var a=parseInt0($('rmin').value),b=parseInt0($('rmax').value);
+      if(isNaN(a)||isNaN(b)){popup('Isi “Dari” dan “Sampai” dengan bilangan bulat, minimal 0.');return;}
+      if(a>MAXV||b>MAXV){popup('Angka terbesar yang bisa dipakai adalah 1.000.000.000.');return;}
+      if(a>b){popup('“Dari” tidak boleh lebih besar dari “Sampai”.');return;}
+      g={title:'Rentang '+a+' sampai '+b,csv:'rentang-sendiri',w:String(b).length,rows:[{min:a,max:b}]};
+    }
+    var raw=$('count').value.trim(),n=Number(raw),uniq=$('uniq').checked,mode=$('mode').value,key=$('apikey').value.trim();
+    if(raw===''||!isFinite(n)||Math.floor(n)!==n||n<1){popup('Isi jumlah angka dengan bilangan bulat, minimal 1.');return;}
+    if(n>MAXN){popup('Jumlah angka maksimal '+MAXN+' per rentang, sedangkan Anda mengisi '+n+'. Kurangi jumlahnya lalu coba lagi.');return;}
+    if(uniq){
+      var cap=Math.min.apply(null,g.rows.map(function(r){return r.max-r.min+1;}));
+      if(n>cap){popup('Dengan “Tanpa pengulangan”, rentang ini hanya bisa menghasilkan maksimal '+cap.toLocaleString('id-ID')+' angka. Kurangi jumlahnya, atau matikan “Tanpa pengulangan”.');return;}
+    }
+    try{
+      if($('remember').checked&&key)localStorage.setItem('rnd_apikey',key);else localStorage.removeItem('rnd_apikey');
+    }catch(e){}
+ 
+    group=g;
+    var rows=g.rows,total=rows.length,done=0,apiNote='',quota='';
+    goBtn.disabled=true;copyBtn.disabled=true;csvBtn.disabled=true;render();
+    function setRes(r,nums,src){nums.sort(function(a,b){return a-b;});r.nums=nums;r.src=src;done++;}
+ 
+    if(mode!=='local'&&key){
+      var per=Math.max(1,Math.min(10,Math.floor(10000/n)));
+      for(var s=0;s<rows.length;s+=per){
+        var chunk=rows.slice(s,s+per);
+        statusEl.textContent='Mengambil lewat Random.org API… ('+done+' dari '+total+' rentang)';
+        try{
+          var ar=await apiChunk(chunk,n,uniq,key);
+          chunk.forEach(function(r,j){setRes(r,ar.data[j],'api');});
+          if(typeof ar.bitsLeft==='number')quota=' Sisa kuota hari ini: '+ar.bitsLeft+' bit, '+ar.requestsLeft+' permintaan.';
+          render();
+          await sleep(ar.delay||120);
+        }catch(e){apiNote='API key tidak bisa dipakai ('+e.message+'). ';break;}
+      }
+    }
+ 
+    var remoteDead=false,failed=0;
+    for(var q=0;q<rows.length;q++){
+      var r=rows[q];
+      if(r.nums)continue;
+      var nums=null,src='local';
+      statusEl.textContent='Mengambil rentang '+label(r)+' ('+(done+1)+' dari '+total+')…';
+      if(mode!=='local'&&!remoteDead){
+        try{nums=await remoteInts(n,r.min,r.max,uniq);src='random';}catch(e){remoteDead=true;}
+      }
+      if(!nums&&mode!=='random'){nums=localInts(n,r.min,r.max,uniq);src='local';}
+      if(nums)setRes(r,nums,src);else{r.failed=true;failed++;done++;}
+      render();
+    }
+ 
+    var real=0,loc=0;
+    rows.forEach(function(r){if(r.nums){if(isReal(r.src))real++;else loc++;}});
+    var msg;
+    if(failed)msg='Random.org tidak bisa diakses untuk '+failed+' rentang. Pilih sumber “Random.org, cadangan browser”, atau buka file ini langsung dari komputer atau hosting Anda.';
+    else if(loc===0)msg='Selesai. Semua angka berasal dari Random.org.';
+    else if(real===0)msg='Selesai. Random.org tidak terjangkau dari halaman ini, jadi semua angka memakai generator acak browser.';
+    else msg='Selesai. '+real+' dari '+total+' rentang berasal dari Random.org, sisanya dari browser.';
+    statusEl.textContent=apiNote+msg+quota;
+    goBtn.disabled=false;
+    copyBtn.disabled=csvBtn.disabled=(real+loc===0);
+  }
+ 
+  copyBtn.addEventListener('click',function(){
+    var txt=group.title.toUpperCase()+'\n'+group.rows.map(function(r){
+      return label(r)+': '+(r.nums?r.nums.map(function(x){return pad(x,group.w);}).join(', '):'gagal');
+    }).join('\n');
+    copyText(txt,'Semua hasil disalin');
+  });
+  csvBtn.addEventListener('click',function(){
+    var lines=['skala,rentang,urutan,angka,sumber'];
+    group.rows.forEach(function(r){
+      if(r.nums)r.nums.forEach(function(x,j){
+        lines.push([group.csv,label(r),j+1,pad(x,group.w),r.src==='api'?'random.org-api':r.src==='random'?'random.org':'browser'].join(','));
+      });
+    });
+    var blob=new Blob(['\ufeff'+lines.join('\n')],{type:'text/csv;charset=utf-8'});
+    var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='angka-acak.csv';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+  });
+ 
+  function syncKind(){
+    var custom=document.querySelector('input[name=kind]:checked').value==='custom';
+    $('fixedBox').hidden=custom;$('customBox').hidden=!custom;
+  }
+  function syncUniq(){
+    var one=Number($('count').value.trim())===1;
+    $('uniqlabel').classList.toggle('dim',one);
+    $('uniqlabel').title=one?'Tidak berpengaruh saat jumlah angka 1. Pilihan Anda tetap tersimpan.':'';
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('input[name=kind]'),function(el){el.addEventListener('change',syncKind);});
+  $('count').addEventListener('input',syncUniq);
+  syncKind();syncUniq();
+  try{
+    var saved=localStorage.getItem('rnd_apikey');
+    if(saved){$('apikey').value=saved;$('remember').checked=true;}
+  }catch(e){}
+  goBtn.addEventListener('click',run);
+})();
+</script>
+</body>
+</html>
+ 
