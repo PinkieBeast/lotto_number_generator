@@ -50,6 +50,9 @@ h2.sec{font-size:1.25rem;margin:24px 0 10px}
 .tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)}
 .tools input.cn{width:90px;padding:5px 8px}
 .tools button{padding:5px 12px}
+.store{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin-bottom:14px}
+.store summary{cursor:pointer;font-weight:600}
+.store .row{margin:10px 0 0}
 .hint{color:var(--mute);font-size:.85rem;margin:0 0 10px}
 .note{color:var(--mute);font-size:.85rem;margin-top:22px;max-width:75ch}
 #toast{position:fixed;left:50%;bottom:max(20px,env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:8px;max-width:90vw;opacity:0;pointer-events:none;font-size:.9rem;transition:opacity .2s}
@@ -63,7 +66,7 @@ dialog p{margin:0 0 16px}
 <main>
 <h1>Generator angka acak</h1>
 <p class="sub">Pilih rentang tetap (10, 100, 1000, atau 10000, dibagi jadi 10 rentang) atau tentukan rentang sendiri, misalnya dari 37 sampai 482. Sumbernya Random.org (lewat API key Anda jika diisi), dengan cadangan generator acak aman milik browser.</p>
- 
+
 <div class="bar">
   <fieldset class="scales">
     <legend>Jenis</legend>
@@ -85,6 +88,8 @@ dialog p{margin:0 0 16px}
     <input id="count" type="number" inputmode="numeric" value="5">
   </label>
   <label class="chk" id="uniqlabel"><input id="uniq" type="checkbox" checked> Tanpa pengulangan</label>
+  <label class="chk" title="Simpan angka hasil generate ke daftar tersimpan di browser ini"><input id="save" type="checkbox" checked> Simpan hasil sementara</label>
+  <label class="chk" title="Jangan keluarkan angka yang sudah ada di daftar tersimpan untuk rentang yang sama"><input id="avoid" type="checkbox" checked> Hindari angka tersimpan</label>
   <label>Sumber
     <select id="mode">
       <option value="auto">Random.org, cadangan browser</option>
@@ -98,29 +103,32 @@ dialog p{margin:0 0 16px}
   <label class="chk"><input id="remember" type="checkbox"> Ingat di browser ini</label>
   <button id="go" class="primary">Generate</button>
   <span class="spacer"></span>
+  <label class="chk" title="Acak urutan angka dalam tiap rentang saat Salin semua"><input id="allacak" type="checkbox"> Acak</label>
   <button id="copy" disabled>Salin semua</button>
   <button id="csv" disabled>Unduh CSV</button>
 </div>
- 
+
+<details class="store" id="storebox"><summary id="storesum">Angka tersimpan</summary><div id="storebody"></div></details>
+
 <p id="status" role="status" aria-live="polite">Pilih jenis rentang dan jumlah angka, lalu tekan Generate.</p>
 <div id="out"></div>
- 
-<p class="note">Klik sebuah angka untuk menyalinnya. Tiap rentang punya tombol “Salin rentang” dengan pilihan jumlah angka dan pilihan acak. Dengan API key, beberapa rentang diambil sekaligus dalam satu permintaan (maksimal 10.000 angka per permintaan). Kuota harian key dihitung dalam bit: kira-kira 4 bit per angka untuk rentang 10, 7 bit untuk 100, 10 bit untuk 1000, 14 bit untuk 10000, dan sekitar 30 bit untuk rentang sampai 1 miliar. Jangan menaruh API key di file yang dipublikasikan: key diketik di halaman dan hanya dikirim ke api.random.org. Garis hijau berarti dari Random.org, garis oranye berarti dari browser.</p>
+
+<p class="note">Klik sebuah angka untuk menyalinnya. Tiap rentang punya tombol “Salin rentang” dengan pilihan jumlah angka dan pilihan acak (acak memilih dan mengacak urutan, baik untuk sebagian maupun semua angka). Angka tersimpan disimpan di browser ini, bukan di server, sampai Anda menghapusnya. Pengecualian angka tersimpan berlaku untuk rentang yang persis sama, misalnya 0–25. Dengan API key, beberapa rentang diambil sekaligus dalam satu permintaan (maksimal 10.000 angka per permintaan). Kuota harian key dihitung dalam bit: kira-kira 4 bit per angka untuk rentang 10, 7 bit untuk 100, 10 bit untuk 1000, 14 bit untuk 10000, dan sekitar 30 bit untuk rentang sampai 1 miliar. Jangan menaruh API key di file yang dipublikasikan: key diketik di halaman dan hanya dikirim ke api.random.org. Garis hijau berarti dari Random.org, garis oranye berarti dari browser.</p>
 </main>
- 
+
 <div id="toast" role="status" aria-live="polite"></div>
 <dialog id="popup">
   <p id="popmsg"></p>
   <form method="dialog"><button class="primary">Mengerti</button></form>
 </dialog>
- 
+
 <script>
 (function(){
   var MAXN=6000,TEXT_AT=60,MAXV=1000000000;
   var $=function(id){return document.getElementById(id);};
   var out=$('out'),statusEl=$('status'),goBtn=$('go'),copyBtn=$('copy'),csvBtn=$('csv'),dlg=$('popup'),toastEl=$('toast'),toastT;
   var group=null;
- 
+
   function popup(msg){$('popmsg').textContent=msg;if(dlg.showModal)dlg.showModal();else alert(msg);}
   function toast(msg){toastEl.textContent=msg;toastEl.classList.add('on');clearTimeout(toastT);toastT=setTimeout(function(){toastEl.classList.remove('on');},2000);}
   function sleep(ms){return new Promise(function(r){setTimeout(r,ms);});}
@@ -129,7 +137,7 @@ dialog p{margin:0 0 16px}
   function isReal(src){return src==='random'||src==='api';}
   function srcName(src){return src==='api'?'Random.org API':src==='random'?'Random.org':'Browser (crypto)';}
   function parseInt0(v){v=v.trim();return /^\d+$/.test(v)?Number(v):NaN;}
- 
+
   function randBelow(range){
     var limit=Math.floor(4294967296/range)*range,buf=new Uint32Array(1);
     do{crypto.getRandomValues(buf);}while(buf[0]>=limit);
@@ -149,7 +157,13 @@ dialog p{margin:0 0 16px}
     while(res.length<n)res.push(min+randBelow(span));
     return res;
   }
- 
+
+  function shuffleN(arr,n){
+    var l=arr.slice(),len=l.length;
+    for(var k=0;k<n;k++){var j=k+randBelow(len-k),t=l[k];l[k]=l[j];l[j]=t;}
+    return l.slice(0,n);
+  }
+
   async function remoteInts(n,min,max,uniq){
     if(uniq&&max-min+1>10000)throw new Error('Rentang terlalu besar untuk antarmuka publik');
     var url=uniq
@@ -165,10 +179,10 @@ dialog p{margin:0 0 16px}
       return arr;
     }finally{clearTimeout(t);}
   }
- 
+
   async function apiChunk(chunk,n,uniq,key){
     var mn=[],mx=[],len=[],rep=[];
-    chunk.forEach(function(r){mn.push(r.min);mx.push(r.max);len.push(n);rep.push(!uniq);});
+    chunk.forEach(function(r){mn.push(0);mx.push(r.span-1);len.push(n);rep.push(!uniq);});
     var ctrl=new AbortController(),t0=setTimeout(function(){ctrl.abort();},30000);
     try{
       var r=await fetch('https://api.random.org/json-rpc/4/invoke',{
@@ -186,14 +200,7 @@ dialog p{margin:0 0 16px}
       return {data:data,bitsLeft:j.result.bitsLeft,requestsLeft:j.result.requestsLeft,delay:j.result.advisoryDelay};
     }finally{clearTimeout(t0);}
   }
- 
-  function acakDim(tools,r){
-    var total=r.nums?r.nums.length:0,raw=(r.copyN||'').trim();
-    var all=raw===''||Number(raw)>=total;
-    tools.querySelector('.acaklabel').classList.toggle('dim',all);
-    tools.querySelector('.acaklabel').title=all?'Hanya berpengaruh jika jumlah yang disalin kurang dari semua angka. Pilihan Anda tetap tersimpan.':'';
-  }
- 
+
   function render(){
     out.innerHTML='';
     if(!group)return;
@@ -204,7 +211,7 @@ dialog p{margin:0 0 16px}
       var head=document.createElement('div');head.className='head';
       var rg=document.createElement('span');rg.className='range';rg.textContent=label(r);
       var s=document.createElement('span');s.className='src';
-      s.textContent=r.nums?(r.nums.length+' angka · '+srcName(r.src)):(r.failed?'Gagal':'Menunggu…');
+      s.textContent=r.nums?(r.nums.length+' angka · '+srcName(r.src)+(r.ex&&r.ex.length?' · '+r.ex.length+' tersimpan dikecualikan':'')):(r.failed?'Gagal':'Menunggu…');
       head.appendChild(rg);head.appendChild(s);row.appendChild(head);
       if(r.nums){
         if(r.nums.length>TEXT_AT){
@@ -220,11 +227,10 @@ dialog p{margin:0 0 16px}
         }
         var tools=document.createElement('div');tools.className='tools';
         tools.innerHTML='<label class="mini">Salin <input type="number" class="cn" inputmode="numeric" min="1" placeholder="semua" data-i="'+i+'"> angka</label>'
-          +'<label class="mini acaklabel"><input type="checkbox" class="ca" data-i="'+i+'"> Acak</label>'
+          +'<label class="mini" title="Pilih dan urutkan acak, juga saat menyalin semua"><input type="checkbox" class="ca" data-i="'+i+'"> Acak</label>'
           +'<button type="button" class="cr" data-i="'+i+'">Salin rentang</button>';
         tools.querySelector('.cn').value=r.copyN||'';
         tools.querySelector('.ca').checked=!!r.acak;
-        acakDim(tools,r);
         row.appendChild(tools);
       }else if(r.failed){
         var e=document.createElement('div');e.className='empty';e.textContent='Random.org tidak terjangkau dan sumber cadangan browser dimatikan.';row.appendChild(e);
@@ -232,7 +238,7 @@ dialog p{margin:0 0 16px}
       out.appendChild(row);
     });
   }
- 
+
   function copyText(txt,msg){
     (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(function(){toast(msg);}).catch(function(){
       var ta=document.createElement('textarea');ta.value=txt;ta.style.position='fixed';ta.style.opacity='0';
@@ -242,7 +248,7 @@ dialog p{margin:0 0 16px}
       toast(ok?msg:'Gagal menyalin. Coba Unduh CSV.');
     });
   }
- 
+
   function numberAt(tb,x,y){
     var node=null,off=0;
     if(document.caretPositionFromPoint){var p=document.caretPositionFromPoint(x,y);if(p){node=p.offsetNode;off=p.offset;}}
@@ -253,24 +259,17 @@ dialog p{margin:0 0 16px}
     while(e<txt.length&&txt.charAt(e)!==' ')e++;
     return txt.slice(s,e)||null;
   }
- 
+
   function copyRange(i){
     var r=group.rows[i],total=r.nums.length,raw=(r.copyN||'').trim(),n=total;
     if(raw!==''){
       n=Number(raw);
       if(!isFinite(n)||Math.floor(n)!==n||n<1||n>total){popup('Jumlah yang disalin harus bilangan bulat antara 1 dan '+total+', atau kosongkan untuk menyalin semua.');return;}
     }
-    var list=r.nums.slice(),shuffled=false;
-    if(n<total){
-      if(r.acak){
-        for(var k=0;k<n;k++){var j=k+randBelow(total-k),t=list[k];list[k]=list[j];list[j]=t;}
-        shuffled=true;
-      }
-      list=list.slice(0,n);
-    }
-    copyText(list.map(function(x){return pad(x,group.w);}).join(', '),'Disalin '+list.length+' angka dari rentang '+label(r)+(shuffled?' (acak)':''));
+    var list=r.acak?shuffleN(r.nums,n):r.nums.slice(0,n);
+    copyText(list.map(function(x){return pad(x,group.w);}).join(', '),'Disalin '+list.length+' angka dari rentang '+label(r)+(r.acak?' (acak)':''));
   }
- 
+
   out.addEventListener('click',function(e){
     var el=e.target;
     if(el.classList&&el.classList.contains('chip')){copyText(el.textContent,'Disalin: '+el.textContent);return;}
@@ -283,10 +282,87 @@ dialog p{margin:0 0 16px}
     var el=e.target,i=el.getAttribute('data-i');
     if(i===null||!group)return;
     var r=group.rows[Number(i)];
-    if(el.classList.contains('cn')){r.copyN=el.value;acakDim(el.closest('.tools'),r);}
+    if(el.classList.contains('cn')){r.copyN=el.value;}
     else if(el.classList.contains('ca')){r.acak=el.checked;}
   });
- 
+
+  var store={},storeUI={};
+  try{store=JSON.parse(localStorage.getItem('rnd_store')||'{}')||{};}catch(e){store={};}
+  function saveStore(){
+    try{localStorage.setItem('rnd_store',JSON.stringify(store));}
+    catch(e){toast('Penyimpanan browser tidak tersedia. Daftar hanya tersimpan selama halaman ini terbuka.');}
+  }
+  function mapper(min,ex){
+    var a=ex.map(function(v,i){return v-min-i;});
+    return function(k){
+      var lo=0,hi=a.length;
+      while(lo<hi){var m=(lo+hi)>>1;if(a[m]<=k)lo=m+1;else hi=m;}
+      return min+k+lo;
+    };
+  }
+  function addStore(r,w){
+    var k=r.min+'-'+r.max,ent=store[k]||{min:r.min,max:r.max,w:w,nums:[]};
+    var set=new Set(ent.nums);r.nums.forEach(function(x){set.add(x);});
+    ent.nums=Array.from(set).sort(function(a,b){return a-b;});ent.w=w;store[k]=ent;
+  }
+  function renderStore(){
+    var keys=Object.keys(store).sort(function(a,b){var x=store[a],y=store[b];return x.min-y.min||x.max-y.max;});
+    var box=$('storebody');box.innerHTML='';
+    $('storesum').textContent='Angka tersimpan ('+keys.length+' rentang)';
+    if(!keys.length){var p=document.createElement('p');p.className='empty';p.textContent='Belum ada angka tersimpan.';box.appendChild(p);return;}
+    keys.forEach(function(k){
+      var e=store[k],left=e.max-e.min+1-e.nums.length;
+      var row=document.createElement('div');row.className='row';
+      var head=document.createElement('div');head.className='head';
+      var rg=document.createElement('span');rg.className='range';rg.textContent=pad(e.min,e.w)+'–'+pad(e.max,e.w);
+      var sp=document.createElement('span');sp.className='src';sp.textContent=e.nums.length+' tersimpan · sisa '+left.toLocaleString('id-ID')+' belum keluar';
+      head.appendChild(rg);head.appendChild(sp);row.appendChild(head);
+      var tb=document.createElement('div');tb.className='nums text';tb.title='Klik sebuah angka untuk menyalinnya';
+      tb.textContent=e.nums.map(function(x){return pad(x,e.w);}).join(' ');row.appendChild(tb);
+      var t=document.createElement('div');t.className='tools';
+      var ui=storeUI[k]||{};
+      t.innerHTML='<label class="mini">Salin <input type="number" class="cn" inputmode="numeric" min="1" placeholder="semua" data-k="'+k+'"> angka</label>'
+        +'<label class="mini" title="Pilih dan urutkan acak, juga saat menyalin semua"><input type="checkbox" class="ca" data-k="'+k+'"> Acak</label>'
+        +'<button type="button" class="scopy" data-k="'+k+'">Salin rentang</button>'
+        +'<button type="button" class="sdel" data-k="'+k+'">Hapus rentang ini</button>';
+      t.querySelector('.cn').value=ui.copyN||'';
+      t.querySelector('.ca').checked=!!ui.acak;
+      row.appendChild(t);box.appendChild(row);
+    });
+    var all=document.createElement('div');all.className='tools';
+    all.innerHTML='<button type="button" class="sclear">Hapus semua tersimpan</button>';box.appendChild(all);
+  }
+  function copyStored(k){
+    var en=store[k],ui=storeUI[k]||{},total=en.nums.length,raw=(ui.copyN||'').trim(),n=total;
+    if(raw!==''){
+      n=Number(raw);
+      if(!isFinite(n)||Math.floor(n)!==n||n<1||n>total){popup('Jumlah yang disalin harus bilangan bulat antara 1 dan '+total+', atau kosongkan untuk menyalin semua.');return;}
+    }
+    var list=ui.acak?shuffleN(en.nums,n):en.nums.slice(0,n);
+    copyText(list.map(function(x){return pad(x,en.w);}).join(', '),'Disalin '+list.length+' angka tersimpan'+(ui.acak?' (acak)':''));
+  }
+  $('storebody').addEventListener('input',function(e){
+    var el=e.target,k=el.getAttribute('data-k');
+    if(k===null)return;
+    var ui=storeUI[k]||(storeUI[k]={});
+    if(el.classList.contains('cn'))ui.copyN=el.value;
+    else if(el.classList.contains('ca'))ui.acak=el.checked;
+  });
+  $('storebody').addEventListener('click',function(e){
+    var el=e.target,tb=el.closest?el.closest('.nums.text'):null;
+    if(tb){var v=numberAt(tb,e.clientX,e.clientY);if(v)copyText(v,'Disalin: '+v);return;}
+    var b=el.closest?el.closest('button'):null;
+    if(!b)return;
+    var k=b.getAttribute('data-k');
+    if(b.classList.contains('scopy')&&store[k]){
+      copyStored(k);
+    }else if(b.classList.contains('sdel')&&store[k]){
+      if(confirm('Hapus angka tersimpan untuk rentang ini?')){delete store[k];delete storeUI[k];saveStore();renderStore();}
+    }else if(b.classList.contains('sclear')){
+      if(confirm('Hapus semua angka tersimpan?')){store={};storeUI={};saveStore();renderStore();}
+    }
+  });
+
   async function run(){
     var kind=document.querySelector('input[name=kind]:checked').value,g,i;
     if(kind==='fixed'){
@@ -303,19 +379,28 @@ dialog p{margin:0 0 16px}
     var raw=$('count').value.trim(),n=Number(raw),uniq=$('uniq').checked,mode=$('mode').value,key=$('apikey').value.trim();
     if(raw===''||!isFinite(n)||Math.floor(n)!==n||n<1){popup('Isi jumlah angka dengan bilangan bulat, minimal 1.');return;}
     if(n>MAXN){popup('Jumlah angka maksimal '+MAXN+' per rentang, sedangkan Anda mengisi '+n+'. Kurangi jumlahnya lalu coba lagi.');return;}
+    var avoid=$('avoid').checked,saveOn=$('save').checked,anyEx=false;
+    g.rows.forEach(function(r){
+      var ent=avoid?store[r.min+'-'+r.max]:null;
+      r.ex=ent?ent.nums.slice():[];
+      if(r.ex.length)anyEx=true;
+      r.span=r.max-r.min+1-r.ex.length;
+    });
+    var gone=g.rows.filter(function(r){return r.span<1;})[0];
+    if(gone){popup('Semua angka di rentang '+pad(gone.min,g.w)+'–'+pad(gone.max,g.w)+' sudah tersimpan. Hapus angka tersimpan untuk rentang ini, atau matikan “Hindari angka tersimpan”.');return;}
     if(uniq){
-      var cap=Math.min.apply(null,g.rows.map(function(r){return r.max-r.min+1;}));
-      if(n>cap){popup('Dengan “Tanpa pengulangan”, rentang ini hanya bisa menghasilkan maksimal '+cap.toLocaleString('id-ID')+' angka. Kurangi jumlahnya, atau matikan “Tanpa pengulangan”.');return;}
+      var cap=Math.min.apply(null,g.rows.map(function(r){return r.span;}));
+      if(n>cap){popup('Dengan “Tanpa pengulangan”, rentang ini hanya punya '+cap.toLocaleString('id-ID')+' angka yang tersedia'+(anyEx?' (sisanya sudah tersimpan)':'')+'. Kurangi jumlahnya, matikan “Tanpa pengulangan”, atau hapus/matikan angka tersimpan.');return;}
     }
     try{
       if($('remember').checked&&key)localStorage.setItem('rnd_apikey',key);else localStorage.removeItem('rnd_apikey');
     }catch(e){}
- 
+
     group=g;
     var rows=g.rows,total=rows.length,done=0,apiNote='',quota='';
     goBtn.disabled=true;copyBtn.disabled=true;csvBtn.disabled=true;render();
-    function setRes(r,nums,src){nums.sort(function(a,b){return a-b;});r.nums=nums;r.src=src;done++;}
- 
+    function setRes(r,idx,src){var f=mapper(r.min,r.ex),nums=idx.map(f);nums.sort(function(a,b){return a-b;});r.nums=nums;r.src=src;done++;}
+
     if(mode!=='local'&&key){
       var per=Math.max(1,Math.min(10,Math.floor(10000/n)));
       for(var s=0;s<rows.length;s+=per){
@@ -330,7 +415,7 @@ dialog p{margin:0 0 16px}
         }catch(e){apiNote='API key tidak bisa dipakai ('+e.message+'). ';break;}
       }
     }
- 
+
     var remoteDead=false,failed=0;
     for(var q=0;q<rows.length;q++){
       var r=rows[q];
@@ -338,13 +423,13 @@ dialog p{margin:0 0 16px}
       var nums=null,src='local';
       statusEl.textContent='Mengambil rentang '+label(r)+' ('+(done+1)+' dari '+total+')…';
       if(mode!=='local'&&!remoteDead){
-        try{nums=await remoteInts(n,r.min,r.max,uniq);src='random';}catch(e){remoteDead=true;}
+        try{nums=await remoteInts(n,0,r.span-1,uniq);src='random';}catch(e){remoteDead=true;}
       }
-      if(!nums&&mode!=='random'){nums=localInts(n,r.min,r.max,uniq);src='local';}
+      if(!nums&&mode!=='random'){nums=localInts(n,0,r.span-1,uniq);src='local';}
       if(nums)setRes(r,nums,src);else{r.failed=true;failed++;done++;}
       render();
     }
- 
+
     var real=0,loc=0;
     rows.forEach(function(r){if(r.nums){if(isReal(r.src))real++;else loc++;}});
     var msg;
@@ -352,16 +437,23 @@ dialog p{margin:0 0 16px}
     else if(loc===0)msg='Selesai. Semua angka berasal dari Random.org.';
     else if(real===0)msg='Selesai. Random.org tidak terjangkau dari halaman ini, jadi semua angka memakai generator acak browser.';
     else msg='Selesai. '+real+' dari '+total+' rentang berasal dari Random.org, sisanya dari browser.';
-    statusEl.textContent=apiNote+msg+quota;
+    var savedNote='';
+    if(saveOn&&real+loc>0){
+      rows.forEach(function(r){if(r.nums)addStore(r,g.w);});
+      saveStore();renderStore();savedNote=' Hasil disimpan ke daftar tersimpan.';
+    }
+    statusEl.textContent=apiNote+msg+quota+savedNote;
     goBtn.disabled=false;
     copyBtn.disabled=csvBtn.disabled=(real+loc===0);
   }
- 
+
   copyBtn.addEventListener('click',function(){
+    var sh=$('allacak').checked;
     var txt=group.title.toUpperCase()+'\n'+group.rows.map(function(r){
-      return label(r)+': '+(r.nums?r.nums.map(function(x){return pad(x,group.w);}).join(', '):'gagal');
+      var l=r.nums?(sh?shuffleN(r.nums,r.nums.length):r.nums):null;
+      return label(r)+': '+(l?l.map(function(x){return pad(x,group.w);}).join(', '):'gagal');
     }).join('\n');
-    copyText(txt,'Semua hasil disalin');
+    copyText(txt,'Semua hasil disalin'+(sh?' (diacak per rentang)':''));
   });
   csvBtn.addEventListener('click',function(){
     var lines=['skala,rentang,urutan,angka,sumber'];
@@ -374,7 +466,7 @@ dialog p{margin:0 0 16px}
     var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='angka-acak.csv';
     document.body.appendChild(a);a.click();document.body.removeChild(a);
   });
- 
+
   function syncKind(){
     var custom=document.querySelector('input[name=kind]:checked').value==='custom';
     $('fixedBox').hidden=custom;$('customBox').hidden=!custom;
@@ -386,7 +478,7 @@ dialog p{margin:0 0 16px}
   }
   Array.prototype.forEach.call(document.querySelectorAll('input[name=kind]'),function(el){el.addEventListener('change',syncKind);});
   $('count').addEventListener('input',syncUniq);
-  syncKind();syncUniq();
+  syncKind();syncUniq();renderStore();
   try{
     var saved=localStorage.getItem('rnd_apikey');
     if(saved){$('apikey').value=saved;$('remember').checked=true;}
@@ -396,4 +488,3 @@ dialog p{margin:0 0 16px}
 </script>
 </body>
 </html>
- 
