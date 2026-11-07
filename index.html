@@ -8,6 +8,7 @@
 :root{--bg:#eef1f5;--panel:#fff;--ink:#1b2430;--mute:#5d6b7c;--line:#d3dae4;--acc:#2b4bdb;--accink:#fff;--chip:#e4e9f7;--ok:#16794c;--warn:#a35a00}
 @media (prefers-color-scheme:dark){:root{--bg:#141a24;--panel:#1c2431;--ink:#e8edf5;--mute:#93a1b4;--line:#2d3849;--acc:#7e96ff;--accink:#10162b;--chip:#27324a;--ok:#5fd3a0;--warn:#f0b35a}}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html{height:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:max(24px,env(safe-area-inset-top)) 16px max(32px,env(safe-area-inset-bottom))}
 main{max-width:960px;margin:0 auto}
@@ -15,14 +16,17 @@ h1{font-size:clamp(1.6rem,4vw,2.3rem);line-height:1.15;margin:0 0 6px;letter-spa
 .sub{color:var(--mute);margin:0 0 20px;max-width:70ch}
 .bar{display:flex;flex-wrap:wrap;gap:12px;align-items:end;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:18px}
 label{display:flex;flex-direction:column;font-size:.85rem;color:var(--mute);gap:4px}
-label.chk{flex-direction:row;align-items:center;gap:8px;color:var(--ink);font-size:1rem}
+label.chk,label.mini{flex-direction:row;align-items:center;gap:8px;color:var(--ink);font-size:1rem}
+label.mini{font-size:.9rem;gap:6px}
+label.dim{opacity:.45}
 fieldset.scales{display:flex;gap:14px;align-items:center;margin:0;border:1px solid var(--line);border-radius:6px;padding:4px 12px 8px}
 fieldset.scales legend{font-size:.85rem;color:var(--mute);padding:0 4px}
+.customBox{display:flex;gap:12px;align-items:end}
 select,input[type=number],input[type=password]{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px 10px}
 select{min-width:150px}
 #count{width:130px}
+.customBox input{width:150px}
 #apikey{min-width:300px}
-label.dim{opacity:.45}
 button{font:inherit;cursor:pointer;border-radius:6px;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:9px 14px}
 button.primary{background:var(--acc);color:var(--accink);border-color:var(--acc);font-weight:600}
 button:disabled{opacity:.55;cursor:wait}
@@ -39,266 +43,3 @@ h2.sec{font-size:1.25rem;margin:24px 0 10px}
 .row.real .src{color:var(--ok)}
 .row.fallback .src{color:var(--warn)}
 .nums{display:flex;flex-wrap:wrap;gap:5px}
-.nums span{background:var(--chip);border-radius:5px;min-width:2.3em;text-align:center;padding:2px 6px;font-variant-numeric:tabular-nums;font-size:.95rem}
-.nums.text{display:block;max-height:220px;overflow:auto;background:var(--chip);border-radius:6px;padding:8px 10px;font-variant-numeric:tabular-nums;word-spacing:.35em;line-height:1.7;font-size:.9rem}
-.empty{color:var(--mute);font-size:.92rem}
-.note{color:var(--mute);font-size:.85rem;margin-top:22px;max-width:75ch}
-dialog{border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink);padding:20px;max-width:430px}
-dialog::backdrop{background:rgba(0,0,0,.45)}
-dialog p{margin:0 0 16px}
-</style>
-</head>
-<body>
-<main>
-<h1>Generator angka acak</h1>
-<p class="sub">Pilih satu ukuran rentang: 10 (00–09, 10–19, … 90–99), 100 (000–099, 100–199, … 900–999), 1000 (0000–0999, 1000–1999, … 9000–9999), atau 10000 (00000–09999, 10000–19999, … 90000–99999). Tiap rentang diambil angkanya sebanyak yang Anda ketik. Sumbernya Random.org (lewat API key Anda jika diisi), dengan cadangan generator acak aman milik browser.</p>
-
-<div class="bar">
-  <fieldset class="scales">
-    <legend>Ukuran rentang</legend>
-    <label class="chk"><input type="radio" name="scale" class="sc" value="puluhan" checked> 10</label>
-    <label class="chk"><input type="radio" name="scale" class="sc" value="ratusan"> 100</label>
-    <label class="chk"><input type="radio" name="scale" class="sc" value="ribuan"> 1000</label>
-    <label class="chk"><input type="radio" name="scale" class="sc" value="puluhribu"> 10000</label>
-  </fieldset>
-  <label>Jumlah angka per rentang (1–6000)
-    <input id="count" type="number" inputmode="numeric" value="5">
-  </label>
-  <label class="chk" id="uniqlabel"><input id="uniq" type="checkbox" checked> Tanpa pengulangan</label>
-  <label>Sumber
-    <select id="mode">
-      <option value="auto">Random.org, cadangan browser</option>
-      <option value="random">Hanya Random.org</option>
-      <option value="local">Hanya browser</option>
-    </select>
-  </label>
-  <label>API key Random.org (opsional)
-    <input id="apikey" type="password" autocomplete="off" spellcheck="false" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
-  </label>
-  <label class="chk"><input id="remember" type="checkbox"> Ingat di browser ini</label>
-  <button id="go" class="primary">Generate</button>
-  <span class="spacer"></span>
-  <button id="copy" disabled>Salin semua</button>
-  <button id="csv" disabled>Unduh CSV</button>
-</div>
-
-<p id="status" role="status" aria-live="polite">Pilih ukuran rentang dan jumlah angka, lalu tekan Generate.</p>
-<div id="out"></div>
-
-<p class="note">Dengan API key, beberapa rentang diambil sekaligus dalam satu permintaan (maksimal 10.000 angka per permintaan). Kuota harian key Anda terbatas dan dihitung dalam bit: kira-kira 4 bit per angka untuk rentang 10, 7 bit untuk 100, 10 bit untuk 1000, dan 14 bit untuk 10000. Misalnya rentang 1000 dengan 6000 angka per rentang (10 rentang) memakai sekitar 600.000 bit, dan rentang 10000 sekitar 840.000 bit, keduanya lebih besar dari batas harian 250.000 bit. Jangan menaruh API key di file yang dipublikasikan: key diketik di halaman dan hanya dikirim ke api.random.org. Garis hijau berarti dari Random.org, garis oranye berarti dari browser.</p>
-</main>
-
-<dialog id="popup">
-  <p id="popmsg"></p>
-  <form method="dialog"><button class="primary">Mengerti</button></form>
-</dialog>
-
-<script>
-(function(){
-  var SC={puluhan:{name:'10',step:10,w:2},ratusan:{name:'100',step:100,w:3},ribuan:{name:'1000',step:1000,w:4},puluhribu:{name:'10000',step:10000,w:5}};
-  var ORDER=['puluhan','ratusan','ribuan','puluhribu'],MAXN=6000,TEXT_AT=60;
-  var $=function(id){return document.getElementById(id);};
-  var out=$('out'),statusEl=$('status'),goBtn=$('go'),copyBtn=$('copy'),csvBtn=$('csv'),dlg=$('popup');
-  var results={},active=[];
-
-  function popup(msg){$('popmsg').textContent=msg;if(dlg.showModal)dlg.showModal();else alert(msg);}
-  function sleep(ms){return new Promise(function(r){setTimeout(r,ms);});}
-  function pad(x,w){var s=String(x);while(s.length<w)s='0'+s;return s;}
-  function rangeOf(k,i){var s=SC[k].step;return {min:i*s,max:i*s+s-1};}
-  function label(k,i){var r=rangeOf(k,i),w=SC[k].w;return pad(r.min,w)+'–'+pad(r.max,w);}
-  function isReal(src){return src==='random'||src==='api';}
-
-  function randBelow(range){
-    var limit=Math.floor(4294967296/range)*range,buf=new Uint32Array(1);
-    do{crypto.getRandomValues(buf);}while(buf[0]>=limit);
-    return buf[0]%range;
-  }
-  function localInts(n,min,max,uniq){
-    var res=[],i;
-    if(uniq){
-      var pool=[];for(i=min;i<=max;i++)pool.push(i);
-      for(i=pool.length-1;i>0;i--){var j=randBelow(i+1),t=pool[i];pool[i]=pool[j];pool[j]=t;}
-      return pool.slice(0,n);
-    }
-    while(res.length<n)res.push(min+randBelow(max-min+1));
-    return res;
-  }
-
-  async function remoteInts(n,min,max,uniq){
-    var url=uniq
-      ?'https://www.random.org/sequences/?min='+min+'&max='+max+'&col=1&format=plain&rnd=new'
-      :'https://www.random.org/integers/?num='+n+'&min='+min+'&max='+max+'&col=1&base=10&format=plain&rnd=new';
-    var ctrl=new AbortController(),t=setTimeout(function(){ctrl.abort();},20000);
-    try{
-      var r=await fetch(url,{signal:ctrl.signal});
-      if(!r.ok)throw new Error('HTTP '+r.status);
-      var arr=(await r.text()).trim().split(/\s+/).map(Number);
-      if(uniq)arr=arr.slice(0,n);
-      if(arr.length!==n||arr.some(function(x){return isNaN(x)||x<min||x>max;}))throw new Error('Respons tidak valid');
-      return arr;
-    }finally{clearTimeout(t);}
-  }
-
-  async function apiChunk(chunk,n,uniq,key){
-    var mn=[],mx=[],len=[],rep=[];
-    chunk.forEach(function(t){var r=rangeOf(t.k,t.i);mn.push(r.min);mx.push(r.max);len.push(n);rep.push(!uniq);});
-    var ctrl=new AbortController(),t0=setTimeout(function(){ctrl.abort();},30000);
-    try{
-      var r=await fetch('https://api.random.org/json-rpc/4/invoke',{
-        method:'POST',headers:{'Content-Type':'application/json'},signal:ctrl.signal,
-        body:JSON.stringify({jsonrpc:'2.0',method:'generateIntegerSequences',id:1,
-          params:{apiKey:key,n:chunk.length,length:len,min:mn,max:mx,replacement:rep}})
-      });
-      var j=await r.json();
-      if(j.error)throw new Error(j.error.message||'Error dari Random.org');
-      var data=j.result.random.data;
-      if(!Array.isArray(data)||data.length!==chunk.length)throw new Error('Respons tidak valid');
-      data.forEach(function(seq,idx){
-        if(seq.length!==n||seq.some(function(x){return x<mn[idx]||x>mx[idx];}))throw new Error('Respons tidak valid');
-      });
-      return {data:data,bitsLeft:j.result.bitsLeft,requestsLeft:j.result.requestsLeft,delay:j.result.advisoryDelay};
-    }finally{clearTimeout(t0);}
-  }
-
-  function render(){
-    out.innerHTML='';
-    active.forEach(function(k){
-      var h=document.createElement('h2');h.className='sec';h.textContent='Rentang per '+SC[k].name;out.appendChild(h);
-      results[k].forEach(function(r,i){
-        var row=document.createElement('div');
-        row.className='row '+(r.nums?(isReal(r.src)?'real':'fallback'):(r.failed?'fallback':''));
-        var head=document.createElement('div');head.className='head';
-        var rg=document.createElement('span');rg.className='range';rg.textContent=label(k,i);
-        var s=document.createElement('span');s.className='src';
-        s.textContent=r.nums?(r.nums.length+' angka · '+(r.src==='api'?'Random.org API':r.src==='random'?'Random.org':'Browser (crypto)')):(r.failed?'Gagal':'Menunggu…');
-        head.appendChild(rg);head.appendChild(s);row.appendChild(head);
-        if(r.nums){
-          var w=SC[k].w;
-          if(r.nums.length>TEXT_AT){
-            var tb=document.createElement('div');tb.className='nums text';
-            tb.textContent=r.nums.map(function(x){return pad(x,w);}).join(' ');
-            row.appendChild(tb);
-          }else{
-            var box=document.createElement('div');box.className='nums';
-            r.nums.forEach(function(x){var c=document.createElement('span');c.textContent=pad(x,w);box.appendChild(c);});
-            row.appendChild(box);
-          }
-        }else if(r.failed){
-          var e=document.createElement('div');e.className='empty';e.textContent='Random.org tidak terjangkau dan sumber cadangan browser dimatikan.';row.appendChild(e);
-        }
-        out.appendChild(row);
-      });
-    });
-  }
-
-  async function run(){
-    var raw=$('count').value.trim(),n=Number(raw),uniq=$('uniq').checked,mode=$('mode').value,key=$('apikey').value.trim();
-    var sel=ORDER.filter(function(k){return document.querySelector('.sc[value='+k+']').checked;});
-    if(!sel.length){popup('Pilih salah satu ukuran rentang: 10, 100, 1000, atau 10000.');return;}
-    if(raw===''||!isFinite(n)||Math.floor(n)!==n||n<1){popup('Isi jumlah angka dengan bilangan bulat, minimal 1.');return;}
-    if(n>MAXN){popup('Jumlah angka maksimal '+MAXN+' per rentang, sedangkan Anda mengisi '+n+'. Kurangi jumlahnya lalu coba lagi.');return;}
-    if(uniq){
-      var cap=Math.min.apply(null,sel.map(function(k){return SC[k].step;}));
-      if(n>cap){popup('Dengan “Tanpa pengulangan”, satu rentang hanya bisa menghasilkan maksimal '+cap+' angka untuk ukuran rentang yang dipilih. Kurangi jumlahnya, atau matikan “Tanpa pengulangan”.');return;}
-    }
-    try{
-      if($('remember').checked&&key)localStorage.setItem('rnd_apikey',key);else localStorage.removeItem('rnd_apikey');
-    }catch(e){}
-
-    active=sel;results={};
-    var tasks=[];
-    sel.forEach(function(k){results[k]=[];for(var i=0;i<10;i++){results[k].push({nums:null});tasks.push({k:k,i:i});}});
-    goBtn.disabled=true;copyBtn.disabled=true;csvBtn.disabled=true;render();
-
-    var total=tasks.length,done=0,apiNote='',quota='';
-    function setRes(t,nums,src){nums.sort(function(a,b){return a-b;});results[t.k][t.i]={nums:nums,src:src};done++;}
-
-    if(mode!=='local'&&key){
-      var per=Math.max(1,Math.min(10,Math.floor(10000/n)));
-      for(var s=0;s<tasks.length;s+=per){
-        var chunk=tasks.slice(s,s+per);
-        statusEl.textContent='Mengambil lewat Random.org API… ('+done+' dari '+total+' rentang)';
-        try{
-          var ar=await apiChunk(chunk,n,uniq,key);
-          chunk.forEach(function(t,j){setRes(t,ar.data[j],'api');});
-          if(typeof ar.bitsLeft==='number')quota=' Sisa kuota hari ini: '+ar.bitsLeft+' bit, '+ar.requestsLeft+' permintaan.';
-          render();
-          await sleep(ar.delay||120);
-        }catch(e){apiNote='API key tidak bisa dipakai ('+e.message+'). ';break;}
-      }
-    }
-
-    var remoteDead=false,failed=0;
-    for(var q=0;q<tasks.length;q++){
-      var t=tasks[q];
-      if(results[t.k][t.i].nums)continue;
-      var rg=rangeOf(t.k,t.i),nums=null,src='local';
-      statusEl.textContent='Mengambil rentang '+label(t.k,t.i)+' ('+(done+1)+' dari '+total+')…';
-      if(mode!=='local'&&!remoteDead){
-        try{nums=await remoteInts(n,rg.min,rg.max,uniq);src='random';}catch(e){remoteDead=true;}
-      }
-      if(!nums&&mode!=='random'){nums=localInts(n,rg.min,rg.max,uniq);src='local';}
-      if(nums)setRes(t,nums,src);else{results[t.k][t.i]={nums:null,failed:true};failed++;done++;}
-      render();
-    }
-
-    var real=0,loc=0;
-    tasks.forEach(function(t){var r=results[t.k][t.i];if(r.nums){if(isReal(r.src))real++;else loc++;}});
-    var msg;
-    if(failed)msg='Random.org tidak bisa diakses untuk '+failed+' rentang. Pilih sumber “Random.org, cadangan browser”, atau buka file ini langsung dari komputer atau hosting Anda.';
-    else if(loc===0)msg='Selesai. Semua angka berasal dari Random.org.';
-    else if(real===0)msg='Selesai. Random.org tidak terjangkau dari halaman ini, jadi semua angka memakai generator acak browser.';
-    else msg='Selesai. '+real+' dari '+total+' rentang berasal dari Random.org, sisanya dari browser.';
-    statusEl.textContent=apiNote+msg+quota;
-    goBtn.disabled=false;
-    copyBtn.disabled=csvBtn.disabled=(real+loc===0);
-  }
-
-  function asText(){
-    return active.map(function(k){
-      var w=SC[k].w;
-      return 'RENTANG PER '+SC[k].name+'\n'+results[k].map(function(r,i){
-        return label(k,i)+': '+(r.nums?r.nums.map(function(x){return pad(x,w);}).join(', '):'gagal');
-      }).join('\n');
-    }).join('\n\n');
-  }
-  copyBtn.addEventListener('click',function(){
-    var txt=asText();
-    (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(function(){
-      statusEl.textContent='Hasil disalin ke clipboard.';
-    }).catch(function(){
-      var ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();
-      try{document.execCommand('copy');statusEl.textContent='Hasil disalin ke clipboard.';}catch(e){statusEl.textContent='Gagal menyalin. Gunakan Unduh CSV.';}
-      document.body.removeChild(ta);
-    });
-  });
-  csvBtn.addEventListener('click',function(){
-    var lines=['skala,rentang,urutan,angka,sumber'];
-    active.forEach(function(k){
-      results[k].forEach(function(r,i){
-        if(r.nums)r.nums.forEach(function(x,j){
-          lines.push([SC[k].name,label(k,i),j+1,pad(x,SC[k].w),r.src==='api'?'random.org-api':r.src==='random'?'random.org':'browser'].join(','));
-        });
-      });
-    });
-    var blob=new Blob(['\ufeff'+lines.join('\n')],{type:'text/csv;charset=utf-8'});
-    var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='angka-acak.csv';
-    document.body.appendChild(a);a.click();document.body.removeChild(a);
-  });
-
-  try{
-    var saved=localStorage.getItem('rnd_apikey');
-    if(saved){$('apikey').value=saved;$('remember').checked=true;}
-  }catch(e){}
-  function syncUniq(){
-    var one=Number($('count').value.trim())===1;
-    $('uniqlabel').classList.toggle('dim',one);
-    $('uniqlabel').title=one?'Tidak berpengaruh saat jumlah angka 1. Pilihan Anda tetap tersimpan.':'';
-  }
-  $('count').addEventListener('input',syncUniq);
-  syncUniq();
-  goBtn.addEventListener('click',run);
-})();
-</script>
-</body>
-</html>
